@@ -23,43 +23,22 @@ void copy(float *output, float *input, int pixels, int stride)
 
 void multiply(float *A, float *U, float *S, float *VT, int M, int K, int N)
 {
-	for (int i = 0; i < M*N; ++i)
-		A[i] = 0;
-
-	if (0) {
-		for (int k = 0; k < K; ++k)
-			A[N*k+k] = S[k];
-		return;
-	}
-
-	if (0) {
-		for (int m = 0; m < M; ++m)
-			for (int k = 0; k < K; ++k)
-				A[N*m+k] = U[M*m+k];
-		return;
-	}
-
-	if (0) {
-		for (int k = 0; k < K; ++k)
-			for (int n = 0; n < N; ++n)
-				A[N*k+n] = VT[N*k+n];
-		return;
-	}
-
 	if (M == K) {
 		for (int m = 0; m < M; ++m)
 			for (int k = 0; k < K; ++k)
-				U[M*m+k] *= S[k];
+				U[K*m+k] *= S[k];
 	} else {
 		for (int k = 0; k < K; ++k)
 			for (int n = 0; n < N; ++n)
 				VT[N*k+n] *= S[k];
 	}
-
-	for (int m = 0; m < M; ++m)
-		for (int n = 0; n < N; ++n)
+	for (int m = 0; m < M; ++m) {
+		for (int n = 0; n < N; ++n) {
+			A[N*m+n] = 0;
 			for (int k = 0; k < K; ++k)
-				A[N*m+n] += U[M*m+k] * VT[N*k+n];
+				A[N*m+n] += U[K*m+k] * VT[N*k+n];
+		}
+	}
 }
 
 int decode(struct bits_reader *bits, int *val, int num)
@@ -99,17 +78,17 @@ int main(int argc, char **argv)
 	int K = M < N ? M : N;
 	int L = M > N ? M : N;
 	float *A = malloc(sizeof(float) * M * N);
-	float *U = malloc(sizeof(float) * M * M);
+	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
-	float *VT = malloc(sizeof(float) * N * N);
+	float *VT = malloc(sizeof(float) * K * N);
 	int *Q = malloc(sizeof(int) * L * L);
 	for (int chan = 0; chan < 3; ++chan) {
-		decode(bits, Q, M * M);
-		quantization(U, Q, M * M, quant[chan]);
+		decode(bits, Q, M * K);
+		quantization(U, Q, M * K, quant[chan]);
 		decode(bits, Q, K);
 		quantization(S, Q, K, quant[chan]);
-		decode(bits, Q, N * N);
-		quantization(VT, Q, N * N, quant[chan]);
+		decode(bits, Q, K * N);
+		quantization(VT, Q, K * N, quant[chan]);
 		multiply(A, U, S, VT, M, K, N);
 		copy(image->buffer+chan, A, M * N, 3);
 	}

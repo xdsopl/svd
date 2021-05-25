@@ -68,21 +68,21 @@ int main(int argc, char **argv)
 	int K = M < N ? M : N;
 	int L = M > N ? M : N;
 	float *A = malloc(sizeof(float) * M * N);
-	float *U = malloc(sizeof(float) * M * M);
+	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
-	float *VT = malloc(sizeof(float) * N * N);
+	float *VT = malloc(sizeof(float) * K * N);
 	int *Q = malloc(sizeof(int) * L * L);
 	for (int chan = 0; chan < 3; ++chan) {
 		copy(A, image->buffer+chan, M * N, 3);
-		int ret = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', M, N, A, N, S, U, M, VT, N);
+		int ret = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', M, N, A, N, S, U, K, VT, N);
 		if (ret > 0)
 			fprintf(stderr, "oh noes!\n");
-		quantization(Q, U, M * M, quant[chan]);
-		encode(bits, Q, M * M);
+		quantization(Q, U, M * K, quant[chan]);
+		encode(bits, Q, M * K);
 		quantization(Q, S, K, quant[chan]);
 		encode(bits, Q, K);
-		quantization(Q, VT, N * N, quant[chan]);
-		encode(bits, Q, N * N);
+		quantization(Q, VT, K * N, quant[chan]);
+		encode(bits, Q, K * N);
 	}
 	delete_image(image);
 	free(A);
