@@ -1,0 +1,6 @@
+encode
+decode
+*.ppm
+!smpte.ppm
+*.svd
+.*.swp
