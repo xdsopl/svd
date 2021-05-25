@@ -32,17 +32,17 @@ void multiply(float *A, float *U, float *S, float *VT, int M, int K, int N)
 	}
 }
 
-int decode(struct bits_reader *bits, int *val, int num)
+int decode(struct bits_reader *bits, int *val, int num, int stride)
 {
 	for (int i = 0; i < num; ++i) {
 		int ret = get_vli(bits);
 		if (ret < 0)
 			return ret;
-		val[i] = ret;
+		val[i*stride] = ret;
 		if (ret && (ret = get_bit(bits)) < 0)
 			return ret;
 		if (ret)
-			val[i] = -val[i];
+			val[i*stride] = -val[i*stride];
 	}
 	return 0;
 }
@@ -64,26 +64,36 @@ int main(int argc, char **argv)
 	for (int chan = 0; chan < 3; ++chan)
 		if ((quant[chan] = get_vli(bits)) < 0)
 			return 1;
-	struct image *image = new_image(argv[2], width, height);
 	int M = height, N = width;
 	int K = M < N ? M : N;
-	int L = M > N ? M : N;
+	int size = M*K+K+K*N;
+	int *Q = malloc(sizeof(int) * 3 * size);
+	for (int i = 0; i < 3 * size; ++i)
+		Q[i] = 0;
+	for (int k = 0; k < K; ++k) {
+		for (int chan = 0; chan < 3; ++chan) {
+			if (decode(bits, Q+chan*size+k, M, K))
+				goto end;
+			if (decode(bits, Q+chan*size+M*K+k, 1, 1))
+				goto end;
+			if (decode(bits, Q+chan*size+M*K+K+N*k, N, 1))
+				goto end;
+		}
+	}
+end:
+	close_reader(bits);
+	struct image *image = new_image(argv[2], width, height);
 	float *A = malloc(sizeof(float) * M * N);
 	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
 	float *VT = malloc(sizeof(float) * K * N);
-	int *Q = malloc(sizeof(int) * L * L);
 	for (int chan = 0; chan < 3; ++chan) {
-		decode(bits, Q, M * K);
-		quantization(U, Q, M * K, quant[chan]);
-		decode(bits, Q, K);
-		quantization(S, Q, K, quant[chan]);
-		decode(bits, Q, K * N);
-		quantization(VT, Q, K * N, quant[chan]);
+		quantization(U, Q+chan*size, M*K, quant[chan]);
+		quantization(S, Q+chan*size+M*K, K, quant[chan]);
+		quantization(VT, Q+chan*size+M*K+K, K*N, quant[chan]);
 		multiply(A, U, S, VT, M, K, N);
 		copy(image->buffer+chan, A, M * N, 3);
 	}
-	close_reader(bits);
 	free(A);
 	free(U);
 	free(S);

@@ -22,13 +22,13 @@ void copy(float *output, float *input, int pixels, int stride)
 		output[i] = input[i*stride];
 }
 
-int encode(struct bits_writer *bits, int *val, int num)
+int encode(struct bits_writer *bits, int *val, int num, int stride)
 {
 	for (int i = 0; i < num; ++i) {
-		int ret = put_vli(bits, abs(val[i]));
+		int ret = put_vli(bits, abs(val[i*stride]));
 		if (ret)
 			return ret;
-		if (val[i] && (ret = put_bit(bits, val[i] < 0)))
+		if (val[i*stride] && (ret = put_bit(bits, val[i*stride] < 0)))
 			return ret;
 	}
 	return 0;
@@ -66,29 +66,37 @@ int main(int argc, char **argv)
 		image->buffer[3*i] -= 0.5f;
 	int M = height, N = width;
 	int K = M < N ? M : N;
-	int L = M > N ? M : N;
 	float *A = malloc(sizeof(float) * M * N);
 	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
 	float *VT = malloc(sizeof(float) * K * N);
-	int *Q = malloc(sizeof(int) * L * L);
+	int size = M*K+K+K*N;
+	int *Q = malloc(sizeof(int) * 3 * size);
 	for (int chan = 0; chan < 3; ++chan) {
 		copy(A, image->buffer+chan, M * N, 3);
 		int ret = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', M, N, A, N, S, U, K, VT, N);
 		if (ret > 0)
 			fprintf(stderr, "oh noes!\n");
-		quantization(Q, U, M * K, quant[chan]);
-		encode(bits, Q, M * K);
-		quantization(Q, S, K, quant[chan]);
-		encode(bits, Q, K);
-		quantization(Q, VT, K * N, quant[chan]);
-		encode(bits, Q, K * N);
+		quantization(Q+chan*size, U, M*K, quant[chan]);
+		quantization(Q+chan*size+M*K, S, K, quant[chan]);
+		quantization(Q+chan*size+M*K+K, VT, K*N, quant[chan]);
 	}
 	delete_image(image);
 	free(A);
 	free(U);
 	free(S);
 	free(VT);
+	for (int k = 0; k < K; ++k) {
+		for (int chan = 0; chan < 3; ++chan) {
+			if (encode(bits, Q+chan*size+k, M, K))
+				goto end;
+			if (encode(bits, Q+chan*size+M*K+k, 1, 1))
+				goto end;
+			if (encode(bits, Q+chan*size+M*K+K+N*k, N, 1))
+				goto end;
+		}
+	}
+end:
 	free(Q);
 	int cnt = bits_count(bits);
 	int bytes = (cnt + 7) / 8;
