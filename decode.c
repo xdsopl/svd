@@ -23,20 +23,11 @@ void copy(float *output, float *input, int pixels, int stride)
 
 void multiply(float *A, float *U, float *S, float *VT, int M, int K, int N)
 {
-	if (M == K) {
-		for (int m = 0; m < M; ++m)
-			for (int k = 0; k < K; ++k)
-				U[K*m+k] *= S[k];
-	} else {
-		for (int k = 0; k < K; ++k)
-			for (int n = 0; n < N; ++n)
-				VT[N*k+n] *= S[k];
-	}
 	for (int m = 0; m < M; ++m) {
 		for (int n = 0; n < N; ++n) {
 			A[N*m+n] = 0;
 			for (int k = 0; k < K; ++k)
-				A[N*m+n] += U[K*m+k] * VT[N*k+n];
+				A[N*m+n] += U[K*m+k] * S[k] * VT[N*k+n];
 		}
 	}
 }
