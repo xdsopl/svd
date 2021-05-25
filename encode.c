@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 		return 1;
 	int width = image->width;
 	int height = image->height;
-	int quant[3] = { 7, 5, 5 };
+	int quant[3] = { 12, 10, 10 };
 	if (argc >= 6)
 		for (int chan = 0; chan < 3; ++chan)
 			quant[chan] = atoi(argv[3+chan]);
