@@ -4,7 +4,6 @@ Encoder for lossy image compression based on the singular value decomposition
 Copyright 2021 Ahmet Inan <xdsopl@gmail.com>
 */
 
-#include <lapack.h>
 #include "ppm.h"
 #include "vli.h"
 #include "bits.h"
@@ -33,6 +32,10 @@ int encode(struct vli_writer *vli, int *val, int num, int stride)
 	}
 	return 0;
 }
+
+void sgesdd_(char *jobz, int *m, int *n, float *a, int *lda,
+	float *s, float *u, int *ldu, float *vt, int *ldvt,
+	float *work, int *lwork, int *iwork, int *info);
 
 int main(int argc, char **argv)
 {
@@ -65,15 +68,15 @@ int main(int argc, char **argv)
 	ycbcr_image(image);
 	for (int i = 0; i < width * height; ++i)
 		image->buffer[3*i] -= 0.5f;
-	lapack_int M = width, N = height, K = M < N ? M : N;
+	int M = width, N = height, K = M < N ? M : N;
 	float *A = malloc(sizeof(float) * M * N);
 	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
 	float *VT = malloc(sizeof(float) * K * N);
 	int size = M*K+K+K*N;
 	int *Q = malloc(sizeof(int) * 3 * size);
-	lapack_int *iwork = malloc(sizeof(lapack_int) * 8 * K);
-	lapack_int info = 0, lwork = -1;
+	int *iwork = malloc(sizeof(int) * 8 * K);
+	int info = 0, lwork = -1;
 	float query;
 	sgesdd_("S", &M, &N, A, &M, S, U, &M, VT, &K, &query, &lwork, iwork, &info);
 	if (info != 0) {
