@@ -72,9 +72,11 @@ int main(int argc, char **argv)
 		Q[i] = 0;
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
-			if (decode(bits, Q+chan*size+k, M, K))
+			int ret = get_vli(bits);
+			if (ret < 0)
 				goto end;
-			if (decode(bits, Q+chan*size+M*K+k, 1, 1))
+			Q[chan*size+M*K+k] = ret;
+			if (decode(bits, Q+chan*size+k, M, K))
 				goto end;
 			if (decode(bits, Q+chan*size+M*K+K+N*k, N, 1))
 				goto end;

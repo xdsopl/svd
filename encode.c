@@ -88,9 +88,9 @@ int main(int argc, char **argv)
 	free(VT);
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
-			if (encode(bits, Q+chan*size+k, M, K))
+			if (put_vli(bits, Q[chan*size+M*K+k]))
 				goto end;
-			if (encode(bits, Q+chan*size+M*K+k, 1, 1))
+			if (encode(bits, Q+chan*size+k, M, K))
 				goto end;
 			if (encode(bits, Q+chan*size+M*K+K+N*k, N, 1))
 				goto end;
