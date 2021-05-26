@@ -25,9 +25,9 @@ void multiply(float *A, float *U, float *S, float *VT, int M, int K, int N)
 {
 	for (int m = 0; m < M; ++m) {
 		for (int n = 0; n < N; ++n) {
-			A[N*m+n] = 0;
+			A[M*n+m] = 0;
 			for (int k = 0; k < K; ++k)
-				A[N*m+n] += U[K*m+k] * S[k] * VT[N*k+n];
+				A[M*n+m] += U[M*k+m] * S[k] * VT[K*n+k];
 		}
 	}
 }
@@ -65,8 +65,7 @@ int main(int argc, char **argv)
 	for (int chan = 0; chan < 3; ++chan)
 		if ((quant[chan] = get_vli(vli)) < 0)
 			return 1;
-	int M = height, N = width;
-	int K = M < N ? M : N;
+	int M = width, N = height, K = M < N ? M : N;
 	int size = M*K+K+K*N;
 	int *Q = malloc(sizeof(int) * 3 * size);
 	for (int i = 0; i < 3 * size; ++i)
@@ -77,9 +76,9 @@ int main(int argc, char **argv)
 			if (ret < 0)
 				goto end;
 			Q[chan*size+M*K+k] = ret;
-			if (decode(vli, Q+chan*size+k, M, K))
+			if (decode(vli, Q+chan*size+M*k, M, 1))
 				goto end;
-			if (decode(vli, Q+chan*size+M*K+K+N*k, N, 1))
+			if (decode(vli, Q+chan*size+M*K+K+k, N, K))
 				goto end;
 		}
 	}

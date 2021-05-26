@@ -1,5 +1,5 @@
 CFLAGS = -std=c99 -W -Wall -O3 -D_GNU_SOURCE=1 -g -fsanitize=address
-LDLIBS = -lm -llapacke
+LDLIBS = -lm -llapack
 
 all: encode decode
 

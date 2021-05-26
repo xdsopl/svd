@@ -4,7 +4,7 @@ Encoder for lossy image compression based on the singular value decomposition
 Copyright 2021 Ahmet Inan <xdsopl@gmail.com>
 */
 
-#include <lapacke.h>
+#include <lapack.h>
 #include "ppm.h"
 #include "vli.h"
 #include "bits.h"
@@ -65,35 +65,46 @@ int main(int argc, char **argv)
 	ycbcr_image(image);
 	for (int i = 0; i < width * height; ++i)
 		image->buffer[3*i] -= 0.5f;
-	int M = height, N = width;
-	int K = M < N ? M : N;
+	lapack_int M = width, N = height, K = M < N ? M : N;
 	float *A = malloc(sizeof(float) * M * N);
 	float *U = malloc(sizeof(float) * M * K);
 	float *S = malloc(sizeof(float) * K);
 	float *VT = malloc(sizeof(float) * K * N);
 	int size = M*K+K+K*N;
 	int *Q = malloc(sizeof(int) * 3 * size);
+	lapack_int *iwork = malloc(sizeof(lapack_int) * 8 * K);
+	lapack_int info = 0, lwork = -1;
+	float query;
+	sgesdd_("S", &M, &N, A, &M, S, U, &M, VT, &K, &query, &lwork, iwork, &info);
+	if (info != 0) {
+		fprintf(stderr, "Querying for work size failed: %d\n", info);
+		return 1;
+	}
+	lwork = query;
+	float *work = malloc(sizeof(float) * lwork);
 	for (int chan = 0; chan < 3; ++chan) {
 		copy(A, image->buffer+chan, M * N, 3);
-		int ret = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'S', M, N, A, N, S, U, K, VT, N);
-		if (ret > 0)
-			fprintf(stderr, "oh noes!\n");
+		sgesdd_("S", &M, &N, A, &M, S, U, &M, VT, &K, work, &lwork, iwork, &info);
+		if (info != 0)
+			fprintf(stderr, "oh noes! %d\n", info);
 		quantization(Q+chan*size, U, M*K, quant[chan]);
 		quantization(Q+chan*size+M*K, S, K, quant[chan]);
 		quantization(Q+chan*size+M*K+K, VT, K*N, quant[chan]);
 	}
-	delete_image(image);
 	free(A);
 	free(U);
 	free(S);
 	free(VT);
+	free(work);
+	free(iwork);
+	delete_image(image);
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
 			if (put_vli(vli, Q[chan*size+M*K+k]))
 				goto end;
-			if (encode(vli, Q+chan*size+k, M, K))
+			if (encode(vli, Q+chan*size+M*k, M, 1))
 				goto end;
-			if (encode(vli, Q+chan*size+M*K+K+N*k, N, 1))
+			if (encode(vli, Q+chan*size+M*K+K+k, N, K))
 				goto end;
 		}
 	}
