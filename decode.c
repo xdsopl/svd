@@ -32,14 +32,14 @@ void multiply(float *A, float *U, float *S, float *VT, int M, int K, int N)
 	}
 }
 
-int decode(struct bits_reader *bits, int *val, int num, int stride)
+int decode(struct vli_reader *vli, int *val, int num, int stride)
 {
 	for (int i = 0; i < num; ++i) {
-		int ret = get_vli(bits);
+		int ret = get_vli(vli);
 		if (ret < 0)
 			return ret;
 		val[i*stride] = ret;
-		if (ret && (ret = get_bit(bits)) < 0)
+		if (ret && (ret = vli_get_bit(vli)) < 0)
 			return ret;
 		if (ret)
 			val[i*stride] = -val[i*stride];
@@ -56,13 +56,14 @@ int main(int argc, char **argv)
 	struct bits_reader *bits = bits_reader(argv[1]);
 	if (!bits)
 		return 1;
-	int width = get_vli(bits);
-	int height = get_vli(bits);
+	struct vli_reader *vli = vli_reader(bits);
+	int width = get_vli(vli);
+	int height = get_vli(vli);
 	if ((width|height) < 0)
 		return 1;
 	int quant[3];
 	for (int chan = 0; chan < 3; ++chan)
-		if ((quant[chan] = get_vli(bits)) < 0)
+		if ((quant[chan] = get_vli(vli)) < 0)
 			return 1;
 	int M = height, N = width;
 	int K = M < N ? M : N;
@@ -72,17 +73,18 @@ int main(int argc, char **argv)
 		Q[i] = 0;
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
-			int ret = get_vli(bits);
+			int ret = get_vli(vli);
 			if (ret < 0)
 				goto end;
 			Q[chan*size+M*K+k] = ret;
-			if (decode(bits, Q+chan*size+k, M, K))
+			if (decode(vli, Q+chan*size+k, M, K))
 				goto end;
-			if (decode(bits, Q+chan*size+M*K+K+N*k, N, 1))
+			if (decode(vli, Q+chan*size+M*K+K+N*k, N, 1))
 				goto end;
 		}
 	}
 end:
+	delete_vli_reader(vli);
 	close_reader(bits);
 	struct image *image = new_image(argv[2], width, height);
 	float *A = malloc(sizeof(float) * M * N);

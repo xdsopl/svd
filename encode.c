@@ -22,13 +22,13 @@ void copy(float *output, float *input, int pixels, int stride)
 		output[i] = input[i*stride];
 }
 
-int encode(struct bits_writer *bits, int *val, int num, int stride)
+int encode(struct vli_writer *vli, int *val, int num, int stride)
 {
 	for (int i = 0; i < num; ++i) {
-		int ret = put_vli(bits, abs(val[i*stride]));
+		int ret = put_vli(vli, abs(val[i*stride]));
 		if (ret)
 			return ret;
-		if (val[i*stride] && (ret = put_bit(bits, val[i*stride] < 0)))
+		if (val[i*stride] && (ret = vli_put_bit(vli, val[i*stride] < 0)))
 			return ret;
 	}
 	return 0;
@@ -55,10 +55,11 @@ int main(int argc, char **argv)
 	struct bits_writer *bits = bits_writer(argv[2], capacity);
 	if (!bits)
 		return 1;
-	put_vli(bits, width);
-	put_vli(bits, height);
+	struct vli_writer *vli = vli_writer(bits);
+	put_vli(vli, width);
+	put_vli(vli, height);
 	for (int chan = 0; chan < 3; ++chan)
-		put_vli(bits, quant[chan]);
+		put_vli(vli, quant[chan]);
 	int meta_data = bits_count(bits);
 	fprintf(stderr, "%d bits for meta data\n", meta_data);
 	ycbcr_image(image);
@@ -88,16 +89,17 @@ int main(int argc, char **argv)
 	free(VT);
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
-			if (put_vli(bits, Q[chan*size+M*K+k]))
+			if (put_vli(vli, Q[chan*size+M*K+k]))
 				goto end;
-			if (encode(bits, Q+chan*size+k, M, K))
+			if (encode(vli, Q+chan*size+k, M, K))
 				goto end;
-			if (encode(bits, Q+chan*size+M*K+K+N*k, N, 1))
+			if (encode(vli, Q+chan*size+M*K+K+N*k, N, 1))
 				goto end;
 		}
 	}
 end:
 	free(Q);
+	delete_vli_writer(vli);
 	int cnt = bits_count(bits);
 	int bytes = (cnt + 7) / 8;
 	int kib = (bytes + 512) / 1024;
