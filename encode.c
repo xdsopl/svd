@@ -101,14 +101,17 @@ int main(int argc, char **argv)
 	free(work);
 	free(iwork);
 	delete_image(image);
-	for (int k = 0; k < K; ++k) {
+	for (int l = -1; l < K; ++l) {
 		for (int chan = 0; chan < 3; ++chan) {
-			if (put_vli(vli, Q[chan*size+M*K+k]))
-				goto end;
-			if (encode(vli, Q+chan*size+M*k, M, 1))
-				goto end;
-			if (encode(vli, Q+chan*size+M*K+K+k, N, K))
-				goto end;
+			int k = l + !chan;
+			if (k >= 0 && k < K) {
+				if (put_vli(vli, Q[chan*size+M*K+k]))
+					goto end;
+				if (encode(vli, Q+chan*size+M*k, M, 1))
+					goto end;
+				if (encode(vli, Q+chan*size+M*K+K+k, N, K))
+					goto end;
+			}
 		}
 	}
 end:

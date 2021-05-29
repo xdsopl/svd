@@ -70,16 +70,19 @@ int main(int argc, char **argv)
 	int *Q = malloc(sizeof(int) * 3 * size);
 	for (int i = 0; i < 3 * size; ++i)
 		Q[i] = 0;
-	for (int k = 0; k < K; ++k) {
+	for (int l = -1; l < K; ++l) {
 		for (int chan = 0; chan < 3; ++chan) {
-			int ret = get_vli(vli);
-			if (ret < 0)
-				goto end;
-			Q[chan*size+M*K+k] = ret;
-			if (decode(vli, Q+chan*size+M*k, M, 1))
-				goto end;
-			if (decode(vli, Q+chan*size+M*K+K+k, N, K))
-				goto end;
+			int k = l + !chan;
+			if (k >= 0 && k < K) {
+				int ret = get_vli(vli);
+				if (ret < 0)
+					goto end;
+				Q[chan*size+M*K+k] = ret;
+				if (decode(vli, Q+chan*size+M*k, M, 1))
+					goto end;
+				if (decode(vli, Q+chan*size+M*K+K+k, N, K))
+					goto end;
+			}
 		}
 	}
 end:
