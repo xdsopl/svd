@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	if (argc >= 6)
 		for (int chan = 0; chan < 3; ++chan)
 			quant[chan] = atoi(argv[3+chan]);
-	int capacity = 1 << 23;
+	int capacity = 0;
 	if (argc >= 7)
 		capacity = atoi(argv[6]);
 	struct bits_writer *bits = bits_writer(argv[2], capacity);

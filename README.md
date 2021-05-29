@@ -30,7 +30,7 @@ Use quantization values of seven for luminance (Y'), six and seven for chrominan
 
 ### Limited storage capacity
 
-Use up to ```65536``` bits of space and discard quality bits, if necessary, to stay below ```65536``` bits:
+Use up to ```65536``` bits of space instead of the default ```0``` (no limit) and discard quality bits, if necessary, to stay below ```65536``` bits:
 
 ```
 ./encode smpte.ppm encoded.svd 12 10 10 65536
