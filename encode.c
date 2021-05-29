@@ -33,9 +33,9 @@ int encode(struct vli_writer *vli, int *val, int num, int stride)
 	return 0;
 }
 
-void sgesdd_(char *jobz, int *m, int *n, float *a, int *lda,
+void sgesvd_(char *jobu, char *jobvt, int *m, int *n, float *a, int *lda,
 	float *s, float *u, int *ldu, float *vt, int *ldvt,
-	float *work, int *lwork, int *iwork, int *info);
+	float *work, int *lwork, int *info);
 
 int main(int argc, char **argv)
 {
@@ -75,10 +75,9 @@ int main(int argc, char **argv)
 	float *VT = malloc(sizeof(float) * K * N);
 	int size = M*K+K+K*N;
 	int *Q = malloc(sizeof(int) * 3 * size);
-	int *iwork = malloc(sizeof(int) * 8 * K);
 	int info = 0, lwork = -1;
 	float query;
-	sgesdd_("S", &M, &N, A, &M, S, U, &M, VT, &K, &query, &lwork, iwork, &info);
+	sgesvd_("S", "S", &M, &N, A, &M, S, U, &M, VT, &K, &query, &lwork, &info);
 	if (info != 0) {
 		fprintf(stderr, "Querying for work size failed: %d\n", info);
 		return 1;
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 	float *work = malloc(sizeof(float) * lwork);
 	for (int chan = 0; chan < 3; ++chan) {
 		copy(A, image->buffer+chan, M * N, 3);
-		sgesdd_("S", &M, &N, A, &M, S, U, &M, VT, &K, work, &lwork, iwork, &info);
+		sgesvd_("S", "S", &M, &N, A, &M, S, U, &M, VT, &K, work, &lwork, &info);
 		if (info != 0)
 			fprintf(stderr, "oh noes! %d\n", info);
 		quantization(Q+chan*size, U, M*K, quant[chan]);
@@ -99,7 +98,6 @@ int main(int argc, char **argv)
 	free(S);
 	free(VT);
 	free(work);
-	free(iwork);
 	delete_image(image);
 	for (int k = 0; k < K; ++k) {
 		for (int chan = 0; chan < 3; ++chan) {
