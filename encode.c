@@ -39,8 +39,8 @@ void sgesdd_(char *jobz, int *m, int *n, float *a, int *lda,
 
 int main(int argc, char **argv)
 {
-	if (argc != 3 && argc != 6 && argc != 7) {
-		fprintf(stderr, "usage: %s input.ppm output.svd [Q0 Q1 Q2] [CAPACITY]\n", argv[0]);
+	if (argc != 3 && argc != 4 && argc != 7) {
+		fprintf(stderr, "usage: %s input.ppm output.svd [CAPACITY] [Q0 Q1 Q2]\n", argv[0]);
 		return 1;
 	}
 	struct image *image = read_ppm(argv[1]);
@@ -48,16 +48,16 @@ int main(int argc, char **argv)
 		return 1;
 	int width = image->width;
 	int height = image->height;
-	int quant[3] = { 12, 10, 10 };
-	if (argc >= 6)
-		for (int chan = 0; chan < 3; ++chan)
-			quant[chan] = atoi(argv[3+chan]);
 	int capacity = 0;
-	if (argc >= 7)
-		capacity = atoi(argv[6]);
+	if (argc >= 4)
+		capacity = atoi(argv[3]);
 	struct bits_writer *bits = bits_writer(argv[2], capacity);
 	if (!bits)
 		return 1;
+	int quant[3] = { 12, 10, 10 };
+	if (argc >= 7)
+		for (int chan = 0; chan < 3; ++chan)
+			quant[chan] = atoi(argv[4+chan]);
 	struct vli_writer *vli = vli_writer(bits);
 	put_vli(vli, width);
 	put_vli(vli, height);

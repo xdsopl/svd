@@ -20,20 +20,20 @@ Watch ```decoded.ppm``` picture file in [feh](https://feh.finalrewind.org/):
 feh decoded.ppm
 ```
 
-### Adjusting quantization
-
-Use quantization values of seven for luminance (Y'), six and seven for chrominance (Cb and Cr) instead of the default ```12 10 10``` values:
-
-```
-./encode smpte.ppm encoded.svd 7 6 5
-```
-
 ### Limited storage capacity
 
 Use up to ```65536``` bits of space instead of the default ```0``` (no limit) and discard quality bits, if necessary, to stay below ```65536``` bits:
 
 ```
-./encode smpte.ppm encoded.svd 12 10 10 65536
+./encode smpte.ppm encoded.svd 65536
+```
+
+### Adjusting quantization
+
+Use quantization values of seven for luminance (Y'), six and seven for chrominance (Cb and Cr) instead of the default ```12 10 10``` values:
+
+```
+./encode smpte.ppm encoded.svd 0 7 6 5
 ```
 
 ### Reading
