@@ -4,8 +4,8 @@ LDLIBS = -lm -llapack
 all: encode decode
 
 test: encode decode
-	./encode input.ppm /dev/null
-#	./encode input.ppm /dev/stdout | ./decode /dev/stdin output.ppm
+	./encode input.ppm /dev/stdout | ./decode /dev/stdin output.ppm
+	compare -verbose -metric PSNR input.ppm output.ppm /dev/null ; true
 
 %: %.c *.h
 	$(CC) $(CFLAGS) $< $(LDLIBS) -o $@
