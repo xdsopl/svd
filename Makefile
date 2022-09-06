@@ -1,15 +1,19 @@
 CFLAGS = -std=c99 -W -Wall -O3 -D_GNU_SOURCE=1 -g -fsanitize=address
 LDLIBS = -lm -llapack
+RM = rm -f
 
-all: encode decode
+all: svdenc svddec
 
-test: encode decode
-	./encode input.ppm /dev/null
-#	./encode input.ppm /dev/stdout | ./decode /dev/stdin output.ppm
+test: svdenc svddec
+	./svdenc input.ppm /dev/null
+#	./svdenc input.ppm /dev/stdout | ./svddec /dev/stdin output.ppm
 
-%: %.c *.h
+svdenc: src/encode.c
+	$(CC) $(CFLAGS) $< $(LDLIBS) -o $@
+
+svddec: src/decode.c
 	$(CC) $(CFLAGS) $< $(LDLIBS) -o $@
 
 clean:
-	rm -f encode decode
+	$(RM) svdenc svddec
 
